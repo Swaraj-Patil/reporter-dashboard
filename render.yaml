@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: reporter-dashboard-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: reporter-dashboard-backend
+          envVarKey: RENDER_EXTERNAL_URL
+
+  - type: web
+    name: reporter-dashboard-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reporter-dashboard-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: reporter-dashboard-db
+    databaseName: reporter_dashboard
+    user: reporter_dashboard_user
+    plan: free
