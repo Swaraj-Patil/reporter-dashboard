@@ -1,8 +1,9 @@
+import { Ticket } from '@/lib/types';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
 import { Clock, User, Bot } from 'lucide-react';
-import { Ticket } from './ReporterDashboard';
+import { camelCaseToEnglish } from '@/lib/utils';
 
 interface TicketDetailPanelProps {
   ticket: Ticket;
@@ -11,9 +12,9 @@ interface TicketDetailPanelProps {
 export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Resolved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'In Review': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Received': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'responded': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_review': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'received': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -27,7 +28,7 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">{ticket.id}</CardTitle>
               <Badge className={getStatusColor(ticket.status)}>
-                {ticket.status}
+                {camelCaseToEnglish(ticket.status)}
               </Badge>
             </div>
           </CardHeader>
@@ -54,9 +55,9 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {['Received', 'In Review', 'Resolved'].map((status, index) => {
+              {['received', 'in_review', 'responded'].map((status, index) => {
                 const isActive = ticket.status === status;
-                const isPassed = ['Received', 'In Review', 'Resolved'].indexOf(ticket.status) > index;
+                const isPassed = ['received', 'in_review', 'responded'].indexOf(ticket.status) > index;
                 const isCompleted = isActive || isPassed;
                 
                 return (
@@ -69,7 +70,7 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
                     <span className={`text-sm ${
                       isActive ? 'font-medium' : isCompleted ? 'text-muted-foreground' : 'text-muted-foreground/50'
                     }`}>
-                      {status}
+                      {camelCaseToEnglish(status)}
                     </span>
                   </div>
                 );
@@ -119,11 +120,11 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {ticket.status === 'Resolved' && (
+              {ticket.status === 'responded' && (
                 <>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span>Report resolved successfully</span>
+                    <span>Report responded successfully</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="w-2 h-2 bg-blue-500 rounded-full" />
@@ -131,13 +132,13 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
                   </div>
                 </>
               )}
-              {ticket.status === 'In Review' && (
+              {ticket.status === 'in_review' && (
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 bg-orange-500 rounded-full" />
                   <span>Under active investigation</span>
                 </div>
               )}
-              {ticket.status === 'Received' && (
+              {ticket.status === 'received' && (
                 <div className="flex items-center gap-2 text-sm">
                   <div className="w-2 h-2 bg-gray-500 rounded-full" />
                   <span>Awaiting initial review</span>

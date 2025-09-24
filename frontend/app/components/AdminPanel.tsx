@@ -6,7 +6,50 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AlertTriangle, Trash2, BarChart3, Bot } from 'lucide-react';
-import { Ticket } from './ReporterDashboard';
+import type { Ticket, TimelineEvent } from '../lib/types';
+
+// Helper functions for status handling
+const displayStatus = (status: string): string => {
+  console.log({status})
+  const statusMap: Record<string, string> = {
+    'received': 'Received',
+    'in_review': 'In Review',
+    'responded': 'Responded'
+  };
+  return statusMap[status] || status;
+};
+
+const mapDisplayToApiStatus = (displayStatus: string): 'received' | 'in_review' | 'responded' => {
+  const statusMap: Record<string, 'received' | 'in_review' | 'responded'> = {
+    'Received': 'received',
+    'In Review': 'in_review',
+    'Responded': 'responded'
+  };
+  return statusMap[displayStatus] || 'received';
+};
+
+// const getStatusColor = (status: string) => {
+//   switch (status) {
+//     case 'received':
+//       return 'bg-yellow-500';
+//     case 'in_review':
+//       return 'bg-blue-500';
+//     case 'responded':
+//       return 'bg-green-500';
+//     default:
+//       return 'bg-gray-500';
+//   }
+// };
+
+  const getStatusColor = (status: string) => {
+    console.log({status})
+    switch (status) {
+      case 'responded': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_review': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'received': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
 export function AdminPanel() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -17,73 +60,76 @@ export function AdminPanel() {
       id: 'TCK-001',
       title: 'Misleading Health Claims in Advertisement',
       description: 'Found an ad making unverified health claims about supplements.',
-      status: 'Resolved',
-      lastUpdated: '2024-01-15',
+      status: 'responded',
+      created_at: "2024-03-21T10:00:00Z",
+      updated_at: "2024-03-21T10:00:00Z",
+      lastUpdated: "2 days ago",
       timeline: [
-        { status: 'Received', timestamp: '2024-01-10 09:30', message: 'Report submitted successfully', type: 'system' },
-        { status: 'In Review', timestamp: '2024-01-12 14:20', message: 'Report assigned to reviewer team', type: 'system' },
-        { status: 'Resolved', timestamp: '2024-01-15 16:45', message: 'Advertisement removed and advertiser warned', type: 'human' }
+        {
+          status: "submitted",
+          timestamp: "2024-03-21T10:00:00Z",
+          message: "Ticket created",
+          type: "system"
+        }
       ]
     },
     {
       id: 'TCK-002',
-      title: 'Inappropriate Content Targeting',
-      description: 'Adult content being shown to minors in gaming app.',
-      status: 'In Review',
-      lastUpdated: '2024-01-14',
+      title: 'Data Privacy Breach',
+      description: 'An app is sharing location data without user consent.',
+      status: 'in_review',
+      created_at: "2024-03-22T09:00:00Z",
+      updated_at: "2024-03-22T09:00:00Z",
+      lastUpdated: "1 day ago",
       timeline: [
-        { status: 'Received', timestamp: '2024-01-13 16:20', message: 'Report submitted successfully', type: 'system' },
-        { status: 'In Review', timestamp: '2024-01-14 10:00', message: 'Report under active investigation', type: 'system' }
+        {
+          status: "submitted",
+          timestamp: "2024-03-22T09:00:00Z",
+          message: "Ticket created",
+          type: "system"
+        }
       ]
     },
     {
       id: 'TCK-003',
-      title: 'Fraudulent Investment Scheme',
-      description: 'Suspicious investment ad promising unrealistic returns.',
-      status: 'Received',
-      lastUpdated: '2024-01-14',
-      timeline: [
-        { status: 'Received', timestamp: '2024-01-14 13:45', message: 'Report submitted successfully', type: 'system' }
-      ]
+      title: 'Misleading Subscription Terms',
+      description: 'Hidden subscription fees in a freemium app.',
+      status: 'received',
+      created_at: "2024-03-23T09:00:00Z",
+      updated_at: "2024-03-23T09:00:00Z",
+      lastUpdated: "3 hours ago",
+      timeline: []
     },
     {
       id: 'TCK-004',
-      title: 'Fake Product Reviews',
-      description: 'Multiple suspicious 5-star reviews posted on the same day.',
-      status: 'Received',
-      lastUpdated: '2024-01-13',
-      timeline: [
-        { status: 'Received', timestamp: '2024-01-13 11:20', message: 'Report submitted successfully', type: 'system' }
-      ]
+      title: 'False Advertisement Claims',
+      description: 'Product features advertised but not available.',
+      status: 'received',
+      created_at: "2024-03-23T11:00:00Z",
+      updated_at: "2024-03-23T11:00:00Z",
+      lastUpdated: "1 hour ago",
+      timeline: []
     }
   ]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Resolved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'In Review': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Received': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const updateTicketStatus = (status: string) => {
+  const updateTicketStatus = (newStatus: 'received' | 'in_review' | 'responded') => {
     if (!selectedTicket) return;
-    
+
     const updatedTickets = tickets.map(ticket => {
       if (ticket.id === selectedTicket.id) {
         const newTimeline = [...(ticket.timeline || [])];
         newTimeline.push({
-          status,
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-          message: `Status updated to ${status}`,
+          status: newStatus,
+          timestamp: new Date().toISOString(),
+          message: `Status updated to ${displayStatus(newStatus)}`,
           type: 'system'
         });
         
         return {
           ...ticket,
-          status: status as 'Received' | 'In Review' | 'Resolved',
-          lastUpdated: new Date().toISOString().split('T')[0],
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+          lastUpdated: "Just now",
           timeline: newTimeline
         };
       }
@@ -102,13 +148,15 @@ export function AdminPanel() {
         const newTimeline = [...(ticket.timeline || [])];
         newTimeline.push({
           status: ticket.status,
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+          timestamp: new Date().toISOString(),
           message: reviewComment,
           type: 'human'
         });
         
         return {
           ...ticket,
+          updated_at: new Date().toISOString(),
+          lastUpdated: "Just now",
           timeline: newTimeline
         };
       }
@@ -135,28 +183,28 @@ export function AdminPanel() {
   const triggerImpactEvent = (impactType: string) => {
     if (!selectedTicket) return;
     
-    // In a real app, this would trigger an actual impact event
-    // For now, we'll just add it to the timeline
-    const impactMessages = {
+    const impactMessages: Record<string, string> = {
       'ad-removed': 'Advertisement removed from platform',
       'advertiser-warned': 'Advertiser received formal warning',
       'account-suspended': 'Advertiser account temporarily suspended'
     };
     
-    const message = impactMessages[impactType as keyof typeof impactMessages] || 'Impact action triggered';
+    const message = impactMessages[impactType] || 'Impact action triggered';
     
     const updatedTickets = tickets.map(ticket => {
       if (ticket.id === selectedTicket.id) {
         const newTimeline = [...(ticket.timeline || [])];
         newTimeline.push({
           status: ticket.status,
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+          timestamp: new Date().toISOString(),
           message,
           type: 'system'
         });
         
         return {
           ...ticket,
+          updated_at: new Date().toISOString(),
+          lastUpdated: "Just now",
           timeline: newTimeline
         };
       }
@@ -167,7 +215,7 @@ export function AdminPanel() {
     setSelectedTicket(updatedTickets.find(t => t.id === selectedTicket.id) || null);
   };
 
-  const pendingTickets = tickets.filter(t => t.status !== 'Resolved');
+  const pendingTickets = tickets.filter(t => t.status !== 'responded');
 
   return (
     <div className="flex-1">
@@ -207,7 +255,7 @@ export function AdminPanel() {
                       <TableCell className="max-w-xs truncate">{ticket.title}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(ticket.status)}>
-                          {ticket.status}
+                          {displayStatus(ticket.status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{ticket.lastUpdated}</TableCell>
@@ -229,7 +277,7 @@ export function AdminPanel() {
                   <CardTitle className="flex items-center justify-between">
                     {selectedTicket.title}
                     <Badge className={getStatusColor(selectedTicket.status)}>
-                      {selectedTicket.status}
+                      {displayStatus(selectedTicket.status)}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -245,14 +293,19 @@ export function AdminPanel() {
                   <CardTitle>Update Status</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Select onValueChange={updateTicketStatus}>
+                  <Select 
+                    value={selectedTicket.status}
+                    onValueChange={(value: 'received' | 'in_review' | 'responded') => updateTicketStatus(value)}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select new status" />
+                      <SelectValue placeholder="Select new status">
+                        {displayStatus(selectedTicket.status)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Received">Received</SelectItem>
-                      <SelectItem value="In Review">In Review</SelectItem>
-                      <SelectItem value="Resolved">Resolved</SelectItem>
+                      <SelectItem value="received">Received</SelectItem>
+                      <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="responded">Responded</SelectItem>
                     </SelectContent>
                   </Select>
                 </CardContent>
@@ -330,7 +383,7 @@ export function AdminPanel() {
                           <div className="flex-1">
                             <p className="text-sm">{event.message}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {event.timestamp} • {event.type === 'system' ? 'System' : 'Human'}
+                              {new Date(event.timestamp).toLocaleString()} • {event.type === 'system' ? 'System' : 'Human'}
                             </p>
                           </div>
                         </div>

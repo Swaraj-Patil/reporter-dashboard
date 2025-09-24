@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -6,98 +6,109 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Switch } from './ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { User, X } from 'lucide-react';
+import { Loader2, User, X } from 'lucide-react';
 import { ImpactFeed } from './ImpactFeed';
 import { TicketDetailPanel } from './TicketDetailPanel';
-
-export interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: 'Received' | 'In Review' | 'Resolved';
-  lastUpdated: string;
-  feedback?: string[];
-  timeline?: Array<{
-    status: string;
-    timestamp: string;
-    message: string;
-    type: 'system' | 'human';
-  }>;
-}
+import { fetchTickets, createTicket } from '../lib/api';
+import { Ticket } from '../lib/types';
+import { socketClient } from '../lib/socket';
+import { format } from 'date-fns';
+import { useToast } from './ui/use-toast';
+import { camelCaseToEnglish } from '@/lib/utils';
 
 export function ReporterDashboard() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [anonymizedSummaries, setAnonymizedSummaries] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: 'TCK-001',
-      title: 'Misleading Health Claims in Advertisement',
-      description: 'Found an ad making unverified health claims about supplements.',
-      status: 'Resolved',
-      lastUpdated: '2024-01-15',
-      timeline: [
-        { status: 'Received', timestamp: '2024-01-10 09:30', message: 'Report submitted successfully', type: 'system' },
-        { status: 'In Review', timestamp: '2024-01-12 14:20', message: 'Report assigned to reviewer team', type: 'system' },
-        { status: 'In Review', timestamp: '2024-01-14 11:15', message: 'Additional context gathered from advertiser', type: 'human' },
-        { status: 'Resolved', timestamp: '2024-01-15 16:45', message: 'Advertisement removed and advertiser warned', type: 'human' }
-      ]
-    },
-    {
-      id: 'TCK-002',
-      title: 'Inappropriate Content Targeting',
-      description: 'Adult content being shown to minors in gaming app.',
-      status: 'In Review',
-      lastUpdated: '2024-01-14',
-      timeline: [
-        { status: 'Received', timestamp: '2024-01-13 16:20', message: 'Report submitted successfully', type: 'system' },
-        { status: 'In Review', timestamp: '2024-01-14 10:00', message: 'Report under active investigation', type: 'system' }
-      ]
-    },
-    {
-      id: 'TCK-003',
-      title: 'Fraudulent Investment Scheme',
-      description: 'Suspicious investment ad promising unrealistic returns.',
-      status: 'Received',
-      lastUpdated: '2024-01-14',
-      timeline: [
-        { status: 'Received', timestamp: '2024-01-14 13:45', message: 'Report submitted successfully', type: 'system' }
-      ]
-    }
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch tickets on component mount
+  useEffect(() => {
+    const loadTickets = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchTickets();
+        setTickets(data);
+        setError(null);
+      } catch (err) {
+        console.log('Error', err)
+        setError('Failed to load tickets. Please try again later.');
+        toast({
+          title: 'Error',
+          description: 'Failed to load tickets. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTickets();
+  }, [toast]);
+
+  // Set up WebSocket listeners
+  useEffect(() => {
+    socketClient.connect();
+
+    socketClient.on('ticket:created', (newTicket: Ticket) => {
+      setTickets(prev => [newTicket, ...prev]);
+      toast({
+        title: 'New Ticket',
+        description: `Ticket created: ${newTicket.title}`,
+      });
+    });
+
+    socketClient.on('ticket:updated', (updatedTicket: Ticket) => {
+      setTickets(prev => prev.map(ticket =>
+        ticket.id === updatedTicket.id ? updatedTicket : ticket
+      ));
+      toast({
+        title: 'Ticket Updated',
+        description: `Status changed to: ${updatedTicket.status}`,
+      });
+    });
+
+    return () => {
+      socketClient.disconnect();
+    };
+  }, [toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
-    const newTicket: Ticket = {
-      id: `TCK-${String(tickets.length + 1).padStart(3, '0')}`,
-      title,
-      description,
-      status: 'Received',
-      lastUpdated: new Date().toISOString().split('T')[0],
-      timeline: [
-        { 
-          status: 'Received', 
-          timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16), 
-          message: 'Report submitted successfully', 
-          type: 'system' 
-        }
-      ]
-    };
-
-    setTickets([...tickets, newTicket]);
-    setTitle('');
-    setDescription('');
+    try {
+      setLoading(true);
+      const newTicket = await createTicket({ title, description });
+      console.log('New Ticket', newTicket)
+      setTickets([newTicket, ...tickets]);
+      setTitle('');
+      setDescription('');
+      toast({
+        title: 'Success',
+        description: 'Report submitted successfully',
+      });
+    } catch (err) {
+      console.log('Error', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to submit report. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Resolved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'In Review': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Received': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'responded': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_review': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'received': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -111,8 +122,8 @@ export function ReporterDashboard() {
             <h1 className="text-2xl">Reporter Dashboard</h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Switch 
-                  checked={anonymizedSummaries} 
+                <Switch
+                  checked={anonymizedSummaries}
                   onCheckedChange={setAnonymizedSummaries}
                 />
                 <label className="text-sm">Anonymized Summaries</label>
@@ -132,16 +143,28 @@ export function ReporterDashboard() {
               <CardTitle>Submit New Report</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              {loading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+                </div>
+              )}
+              {error && (
+                <div className="bg-destructive/10 border-destructive/20 text-destructive border rounded-md p-4 my-4">
+                  {error}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="grid gap-4">
                 <div>
                   <label className="block text-sm mb-2">Title</label>
                   <Input
+                    placeholder="Brief description of the issue"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Brief description of the issue"
+                    disabled={loading}
                     required
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm mb-2">Description</label>
                   <Textarea
@@ -152,7 +175,9 @@ export function ReporterDashboard() {
                     required
                   />
                 </div>
-                <Button type="submit">Submit Report</Button>
+                <div>
+                  <Button type="submit">Submit Report</Button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -173,9 +198,9 @@ export function ReporterDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tickets.map((ticket) => (
-                    <TableRow 
-                      key={ticket.id} 
+                  {tickets?.map((ticket) => (
+                    <TableRow
+                      key={ticket.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setSelectedTicket(ticket)}
                     >
@@ -183,10 +208,12 @@ export function ReporterDashboard() {
                       <TableCell className="max-w-xs truncate">{ticket.title}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(ticket.status)}>
-                          {ticket.status}
+                          {camelCaseToEnglish(ticket.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{ticket.lastUpdated}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {(ticket.updated_at || ticket.created_at) ? format(new Date(ticket.updated_at || ticket.created_at), 'MMM d, yyyy') : 'N/A'}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

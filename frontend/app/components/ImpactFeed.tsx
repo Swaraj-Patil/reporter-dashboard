@@ -104,7 +104,7 @@ export function ImpactFeed({ standalone = false }: ImpactFeedProps) {
           {impactEvents.map((event) => {
             const Icon = getImpactIcon(event.type);
             return (
-              <div key={event.id} className="flex gap-4 p-4 border rounded-lg hover:bg-muted/30 transition-colors">
+              <div key={event.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/30 transition-colors">
                 <div className={`p-3 rounded-full ${getImpactColor(event.type)} flex-shrink-0`}>
                   <Icon className="h-4 w-4" />
                 </div>
