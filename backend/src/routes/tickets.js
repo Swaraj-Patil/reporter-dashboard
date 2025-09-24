@@ -233,7 +233,8 @@ router.post('/', async (req, res) => {
         title: ticket.title,
         status: ticket.status,
         reporter: ticket.reporter_name,
-        created_at: ticket.created_at
+        created_at: ticket.created_at,
+        description: ticket.description,
       }
     };
 

@@ -43,7 +43,7 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
             </div>
             <div>
               <h4 className="font-medium text-sm mb-2">Last Updated</h4>
-              <p className="text-sm text-muted-foreground">{ticket.lastUpdated}</p>
+              <p className="text-sm text-muted-foreground">{ticket.lastUpdated || ticket.created_at}</p>
             </div>
           </CardContent>
         </Card>
