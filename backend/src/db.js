@@ -6,7 +6,10 @@ if (!connectionString) {
   process.exit(1);
 }
 
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+  connectionString,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 module.exports = {
   query: (text, params) => pool.query(text, params),

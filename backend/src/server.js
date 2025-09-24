@@ -4,6 +4,7 @@ const http = require('http');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./utils/swagger');
+const initializeDatabase = require('./initDb');
 const ticketsRouter = require('./routes/tickets');
 const commentsRouter = require('./routes/comments');
 const impactEventsRouter = require('./routes/impact-events');
@@ -12,6 +13,16 @@ const db = require('./db');
 
 const app = express();
 const server = http.createServer(app);
+
+// Initialize database when server starts
+initializeDatabase()
+  .then(() => {
+    console.log('Database initialized successfully');
+  })
+  .catch(error => {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  });
 
 // attach socket.io
 const { Server } = require('socket.io');
