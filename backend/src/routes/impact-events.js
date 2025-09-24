@@ -3,26 +3,66 @@ const db = require('../db');
 
 const router = express.Router();
 
-// Valid impact event types
-const VALID_IMPACT_TYPES = ['ad_removed', 'advertiser_warned', 'policy_updated'];
+const VALID_IMPACT_TYPES = ['ad_removed', 'advertiser_warned', 'policy_updated', 'report_used', 'enhanced_monitoring', 'content_filtered'];
 
-// GET /impact-events?ticket_id=123
+/**
+ * @swagger
+ * /api/impact-events:
+ *   get:
+ *     summary: Get all impact events
+ *     description: Retrieve a list of all impact events (across all tickets)
+ *     tags: [Impact Events]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Maximum number of impact events to return
+ *     responses:
+ *       '200':
+ *         description: List of impact events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 impact_events:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ImpactEvent'
+ *       '500':
+ *         description: Server error
+ */
 router.get('/', async (req, res) => {
-  const { ticket_id } = req.query;
+  const { limit } = req.query;
   
-  if (!ticket_id) {
-    return res.status(400).json({ ok: false, error: 'missing_ticket_id' });
+  let limitNum = null;
+  if (limit !== undefined) {
+    limitNum = parseInt(limit, 10);
+    if (isNaN(limitNum) || limitNum < 1) {
+      return res.status(400).json({ ok: false, error: 'invalid_limit' });
+    }
   }
 
   try {
-    const result = await db.query(
-      `SELECT ie.*, u.username as admin_name
-       FROM impact_events ie
-       LEFT JOIN users u ON ie.admin_id = u.id
-       WHERE ie.ticket_id = $1
-       ORDER BY ie.created_at DESC`,
-      [ticket_id]
-    );
+    let sql = `
+      SELECT ie.*, u.username as admin_name
+      FROM impact_events ie
+      LEFT JOIN users u ON ie.admin_id = u.id
+      ORDER BY ie.created_at DESC
+    `;
+    const params = [];
+
+    if (limitNum !== null) {
+      sql += ` LIMIT $1`;
+      params.push(limitNum);
+    }
+
+    const result = await db.query(sql, params);
 
     res.json({ ok: true, impact_events: result.rows });
   } catch (err) {
@@ -31,7 +71,57 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /impact-events
+
+/**
+ * @swagger
+ * /api/impact-events:
+ *   post:
+ *     summary: Create a new impact event
+ *     description: Create an impact event for a ticket. Only admins can create impact events.
+ *     tags: [Impact Events]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ticket_id
+ *               - type
+ *               - description
+ *               - admin_id
+ *             properties:
+ *               ticket_id:
+ *                 type: integer
+ *                 description: ID of the ticket this impact is for
+ *               type:
+ *                 type: string
+ *                 enum: [ad_removed, advertiser_warned, policy_updated, report_used, enhanced_monitoring, content_filtered]
+ *               description:
+ *                 type: string
+ *                 description: Detailed description of the impact
+ *               admin_id:
+ *                 type: integer
+ *                 description: ID of the admin creating the impact
+ *     responses:
+ *       201:
+ *         description: Impact event created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 impact_event:
+ *                   $ref: '#/components/schemas/ImpactEvent'
+ *       400:
+ *         description: Missing required fields or invalid impact type
+ *       404:
+ *         description: Ticket not found or user not authorized
+ *       500:
+ *         description: Server error
+ */
 router.post('/', async (req, res) => {
   const { ticket_id, type, description, admin_id } = req.body;
 
@@ -87,6 +177,15 @@ router.post('/', async (req, res) => {
       case 'policy_updated':
         commentBody = `Impact: Policy was updated. ${description}`;
         break;
+      case 'report_used':
+        commentBody = `Impact: Report was used in Analytics Summary. ${description}`;
+        break;
+      case 'enhanced_monitoring':
+        commentBody = `Impact: Enhanced Monitoring is Activated. ${description}`;
+        break;
+      case 'content_filtered':
+        commentBody = `Impact: Content Filter is Updated. ${description}`;
+        break;
     }
 
     await db.query(
@@ -135,7 +234,30 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /impact-events/stats
+/**
+ * @swagger
+ * /api/impact-events/stats:
+ *   get:
+ *     summary: Get impact event statistics
+ *     description: Retrieve aggregated statistics about impact events grouped by type
+ *     tags: [Impact Events]
+ *     responses:
+ *       200:
+ *         description: Impact event statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 stats:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ImpactEventStats'
+ *       500:
+ *         description: Server error
+ */
 router.get('/stats', async (req, res) => {
   try {
     const result = await db.query(`
@@ -156,7 +278,43 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// GET /impact-events/timeline
+/**
+ * @swagger
+ * /api/impact-events/timeline:
+ *   get:
+ *     summary: Get impact event timeline
+ *     description: Retrieve daily counts of impact events by type within a date range
+ *     tags: [Impact Events]
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for the timeline (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for the timeline (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Timeline of impact events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 timeline:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TimelineEntry'
+ *       500:
+ *         description: Server error
+ */
 router.get('/timeline', async (req, res) => {
   const { start_date, end_date } = req.query;
   
@@ -199,7 +357,10 @@ router.get('/timeline', async (req, res) => {
           date: row.date,
           ad_removed: 0,
           advertiser_warned: 0,
-          policy_updated: 0
+          policy_updated: 0,
+          report_used: 0,
+          enhanced_monitoring: 0,
+          content_filtered: 0
         };
       }
       timeline[row.date][row.type] = parseInt(row.count);

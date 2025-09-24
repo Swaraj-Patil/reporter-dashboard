@@ -1,131 +1,133 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { AlertTriangle, Trash2, BarChart3, CheckCircle, Eye, Shield } from 'lucide-react';
+import { AlertTriangle, Trash2, FileText, Loader2, ChartColumn, Eye, Shield } from 'lucide-react';
+import { format } from 'date-fns';
+import { socketClient } from '../lib/socket';
+import { fetchImpactEvents } from '../lib/api';
+import { ImpactEvent } from '../lib/types';
 
-interface ImpactEvent {
-  id: string;
-  type: 'warning' | 'removal' | 'analytics' | 'resolution' | 'monitoring' | 'protection';
-  title: string;
-  description: string;
-  timestamp: string;
-  relatedTicket?: string;
+interface ImpactWithTitle extends ImpactEvent {
+  ticket_title?: string;
 }
 
 interface ImpactFeedProps {
+  ticketId?: number;
+  limit?: number;
+  className?: string;
   standalone?: boolean;
 }
 
-export function ImpactFeed({ standalone = false }: ImpactFeedProps) {
-  const impactEvents: ImpactEvent[] = [
-    {
-      id: 'IMP-001',
-      type: 'removal',
-      title: 'Ad Removed',
-      description: 'Misleading health supplement advertisement removed from platform',
-      timestamp: '2024-01-15 16:45',
-      relatedTicket: 'TCK-001'
-    },
-    {
-      id: 'IMP-002',
-      type: 'warning',
-      title: 'Advertiser Warned',
-      description: 'Formal warning issued to advertiser for policy violations',
-      timestamp: '2024-01-15 16:30',
-      relatedTicket: 'TCK-001'
-    },
-    {
-      id: 'IMP-003',
-      type: 'analytics',
-      title: 'Report Used in Analytics Summary',
-      description: 'Data from this report contributed to monthly policy insights',
-      timestamp: '2024-01-14 18:20',
-      relatedTicket: 'TCK-002'
-    },
-    {
-      id: 'IMP-004',
-      type: 'monitoring',
-      title: 'Enhanced Monitoring Activated',
-      description: 'Increased scrutiny applied to similar content patterns',
-      timestamp: '2024-01-14 15:10',
-      relatedTicket: 'TCK-003'
-    },
-    {
-      id: 'IMP-005',
-      type: 'protection',
-      title: 'Content Filter Updated',
-      description: 'Algorithm updated to better detect similar violations',
-      timestamp: '2024-01-13 14:30',
-      relatedTicket: 'TCK-002'
-    },
-    {
-      id: 'IMP-006',
-      type: 'resolution',
-      title: 'Policy Review Completed',
-      description: 'Comprehensive review led to updated community guidelines',
-      timestamp: '2024-01-12 11:45',
-      relatedTicket: 'TCK-001'
-    }
-  ];
+const getImpactIcon = (type: string) => {
+  switch (type) {
+    case 'ad_removed': return Trash2;
+    case 'advertiser_warned': return AlertTriangle;
+    case 'policy_updated': return FileText;
+    case 'report_used': return ChartColumn;
+    case 'enhanced_monitoring': return Eye;
+    case 'content_filtered': return Shield;
+    default: return AlertTriangle;
+  }
+};
 
-  const getImpactIcon = (type: string) => {
-    switch (type) {
-      case 'warning': return AlertTriangle;
-      case 'removal': return Trash2;
-      case 'analytics': return BarChart3;
-      case 'resolution': return CheckCircle;
-      case 'monitoring': return Eye;
-      case 'protection': return Shield;
-      default: return BarChart3;
-    }
-  };
+const getImpactColor = (type: string) => {
+  switch (type) {
+    case 'ad_removed': return 'bg-red-100 text-red-700 border-red-200';
+    case 'advertiser_warned': return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'policy_updated': return 'bg-green-100 text-green-700 border-green-200';
+    case 'report_used': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'enhanced_monitoring': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'content_filtered': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
+    default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  }
+};
 
-  const getImpactColor = (type: string) => {
-    switch (type) {
-      case 'warning': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'removal': return 'bg-red-100 text-red-700 border-red-200';
-      case 'analytics': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'resolution': return 'bg-green-100 text-green-700 border-green-200';
-      case 'monitoring': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'protection': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
+export function ImpactFeed({ ticketId, limit, className, standalone = false }: ImpactFeedProps) {
+  const [impacts, setImpacts] = useState<ImpactWithTitle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchImpactData = async () => {
+      try {
+        setLoading(true);
+        const impacts = await fetchImpactEvents({ ticketId, limit });
+        setImpacts(impacts);
+      } catch (err) {
+        console.error('Error fetching impacts:', err);
+        setError('Failed to load impact events');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchImpactData();
+
+    // Subscribe to real-time updates
+    const handleImpactCreated = (impact: ImpactEvent) => {
+      if (!ticketId || impact.ticket_id === ticketId) {
+        setImpacts(prev => {
+          const newImpacts = [impact, ...prev];
+          return limit ? newImpacts.slice(0, limit) : newImpacts;
+        });
+      }
+    };
+
+    socketClient.on('impact:created', handleImpactCreated);
+
+    return () => {
+      socketClient.off('impact:created', handleImpactCreated);
+    };
+  }, [ticketId, limit]);
 
   const content = (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle>Impact Feed</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Real-time outcomes and actions resulting from reports
-        </p>
+        {standalone && (
+          <p className="text-sm text-muted-foreground">
+            Real-time outcomes and actions resulting from reports
+          </p>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {impactEvents.map((event) => {
-            const Icon = getImpactIcon(event.type);
-            return (
-              <div key={event.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                <div className={`p-3 rounded-full ${getImpactColor(event.type)} flex-shrink-0`}>
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">{event.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-                    </div>
-                    {event.relatedTicket && (
-                      <Badge variant="outline" className="text-xs">
-                        {event.relatedTicket}
-                      </Badge>
-                    )}
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : error ? (
+          <p className="text-destructive">{error}</p>
+        ) : impacts.length === 0 ? (
+          <p className="text-muted-foreground">No impact events yet</p>
+        ) : (
+          <div className="space-y-4">
+            {impacts.map((impact) => {
+              const Icon = getImpactIcon(impact.type);
+              return (
+                <div key={impact.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/30 transition-colors">
+                  <div className={`p-3 rounded-full ${getImpactColor(impact.type)} flex-shrink-0`}>
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{event.timestamp}</p>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mt-1">{impact.description}</p>
+                      </div>
+                      {impact.ticket_title && (
+                        <Badge variant="outline" className="text-xs">
+                          {impact.ticket_title}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      by {impact.admin_name} • {format(new Date(impact.created_at), "MMM d, yyyy HH:mm")}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

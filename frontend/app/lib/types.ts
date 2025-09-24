@@ -36,8 +36,8 @@ export interface Comment {
 
 export interface ImpactEvent {
   id: string;
-  ticket_id: string;
-  type: 'ad_removed' | 'advertiser_warned' | 'policy_updated';
+  ticket_id: number;
+  type: 'ad_removed' | 'advertiser_warned' | 'policy_updated' | 'report_used' | 'enhanced_monitoring' | 'content_filtered';
   description: string;
   admin_name?: string;
   created_at: string;

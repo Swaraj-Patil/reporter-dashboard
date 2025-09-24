@@ -7,7 +7,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /tickets:
+ * /api/tickets:
  *   get:
  *     summary: Get a list of tickets
  *     description: Retrieve a list of tickets with optional anonymization and status filtering
@@ -86,7 +86,7 @@ router.get('/', async (req, res) => {
 
 /**
  * @swagger
- * /tickets/{id}:
+ * /api/tickets/{id}:
  *   get:
  *     summary: Get a ticket by ID
  *     description: Retrieve detailed information about a specific ticket

@@ -85,10 +85,10 @@ app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // attach routers
-app.use('/tickets', ticketsRouter);
-app.use('/comments', commentsRouter);
-app.use('/impact-events', impactEventsRouter);
-app.use('/admin', adminRouter);
+app.use('/api/tickets', ticketsRouter);
+app.use('/api/comments', commentsRouter);
+app.use('/api/impact-events', impactEventsRouter);
+app.use('/api/admin', adminRouter);
 
 // health
 app.get('/_health', (req, res) => res.json({ ok: true }));

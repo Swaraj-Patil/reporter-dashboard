@@ -41,7 +41,7 @@ CREATE TABLE comments (
 CREATE TABLE impact_events (
   id SERIAL PRIMARY KEY,
   ticket_id INT REFERENCES tickets(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('ad_removed', 'advertiser_warned', 'policy_updated')),
+  type TEXT NOT NULL CHECK (type IN ('ad_removed', 'advertiser_warned', 'policy_updated', 'report_used', 'enhanced_monitoring', 'content_filtered')),
   description TEXT NOT NULL,
   admin_id INT REFERENCES users(id),
   created_at TIMESTAMP DEFAULT now()

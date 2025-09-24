@@ -220,8 +220,10 @@ export function ReporterDashboard() {
             </CardContent>
           </Card>
 
+        </div>
+        <div className="md:col-span-1">
           {/* Impact Feed */}
-          <ImpactFeed />
+          <ImpactFeed limit={5} className="sticky top-4" />
         </div>
       </div>
 

@@ -45,13 +45,16 @@ router.post('/review', async (req, res) => {
 
     // create a simulated impact event for demonstration
     const impactTypes = action === 'responded'
-      ? ['ad_removed', 'advertiser_warned', 'policy_updated']
+      ? ['ad_removed', 'advertiser_warned', 'policy_updated', 'report_used', 'enhanced_monitoring', 'content_filtered']
       : ['in_review_log'];
     const chosen = impactTypes[Math.floor(Math.random() * impactTypes.length)];
     let desc = '';
     if (chosen === 'ad_removed') desc = 'Simulated: matching ad removed from platform.';
     if (chosen === 'advertiser_warned') desc = 'Simulated: advertiser received a warning.';
     if (chosen === 'policy_updated') desc = 'Simulated: policy guidance updated for this ad category.';
+    if (chosen === 'report_used') desc = 'Simulated: report Used in Analytics Summary.';
+    if (chosen === 'enhanced_monitoring') desc = 'Simulated: enhanced Monitoring Activated.';
+    if (chosen === 'content_filtered') desc = 'Simulated: content Filter Updated.';
     if (chosen === 'in_review_log') desc = 'Simulated: review logged; no action taken yet.';
 
     const impactInsert = await db.query(
