@@ -84,7 +84,6 @@ export function ReporterDashboard() {
     try {
       setLoading(true);
       const newTicket = await createTicket({ title, description });
-      console.log('New Ticket', newTicket)
       setTickets([newTicket, ...tickets]);
       setTitle('');
       setDescription('');
@@ -198,7 +197,7 @@ export function ReporterDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tickets?.map((ticket) => (
+                  {[...new Map(tickets.map(ticket => [ticket.id, ticket])).values()]?.map((ticket) => (
                     <TableRow
                       key={ticket.id}
                       className="cursor-pointer hover:bg-muted/50"
