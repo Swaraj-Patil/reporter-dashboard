@@ -3,7 +3,7 @@ const db = require('../db');
 
 const router = express.Router();
 
-const VALID_IMPACT_TYPES = ['ad_removed', 'advertiser_warned', 'policy_updated', 'report_used', 'enhanced_monitoring', 'content_filtered'];
+const VALID_IMPACT_TYPES = ['ad_removed', 'advertiser_warned', 'policy_updated', 'report_used', 'enhanced_monitoring', 'content_filtered', 'in_review_log'];
 
 /**
  * @swagger
@@ -185,6 +185,9 @@ router.post('/', async (req, res) => {
         break;
       case 'content_filtered':
         commentBody = `Impact: Content Filter is Updated. ${description}`;
+        break;
+      case 'in_review_log':
+        commentBody = `Impact: Ticket reviewed. ${description}`;
         break;
     }
 

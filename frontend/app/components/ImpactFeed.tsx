@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { socketClient } from '../lib/socket';
 import { fetchImpactEvents } from '../lib/api';
 import { ImpactEvent } from '../lib/types';
+import { CheckCircledIcon } from '@radix-ui/react-icons';
 
 interface ImpactWithTitle extends ImpactEvent {
   ticket_title?: string;
@@ -26,7 +27,7 @@ const getImpactIcon = (type: string) => {
     case 'report_used': return ChartColumn;
     case 'enhanced_monitoring': return Eye;
     case 'content_filtered': return Shield;
-    default: return AlertTriangle;
+    default: return CheckCircledIcon;
   }
 };
 
@@ -38,7 +39,7 @@ const getImpactColor = (type: string) => {
     case 'report_used': return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'enhanced_monitoring': return 'bg-purple-100 text-purple-700 border-purple-200';
     case 'content_filtered': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
-    default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    default: return 'bg-green-100 text-green-700 border-green-200';
   }
 };
 
