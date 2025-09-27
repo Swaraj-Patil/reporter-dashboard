@@ -54,20 +54,6 @@ async function initializeDatabase() {
       }
     }
 
-    // Seed development data if needed
-    if (process.env.NODE_ENV !== 'production') {
-      const seedPath = path.join(__dirname, '..', 'sql', 'seed.sql');
-      try {
-        const seedSql = await fs.readFile(seedPath, 'utf8');
-        await pool.query(seedSql);
-        console.log('Development data seeded successfully');
-      } catch (err) {
-        if (err.code !== 'ENOENT') { // Ignore if seed file doesn't exist
-          throw err;
-        }
-      }
-    }
-
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
