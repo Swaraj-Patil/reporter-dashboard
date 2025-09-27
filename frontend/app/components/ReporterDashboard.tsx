@@ -203,7 +203,7 @@ export function ReporterDashboard() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setSelectedTicket(ticket)}
                     >
-                      <TableCell className="font-mono text-sm">{ticket.id}</TableCell>
+                      <TableCell className="font-mono text-sm">{`TCK-${String(ticket.id).padStart(3, '0')}`}</TableCell>
                       <TableCell className="max-w-xs truncate">{ticket.title}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(ticket.status)}>

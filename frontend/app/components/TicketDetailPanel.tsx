@@ -26,7 +26,7 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{ticket.id}</CardTitle>
+              <CardTitle className="text-base">{`TCK-${String(ticket.id).padStart(3, '0')}`}</CardTitle>
               <Badge className={getStatusColor(ticket.status)}>
                 {camelCaseToEnglish(ticket.status)}
               </Badge>

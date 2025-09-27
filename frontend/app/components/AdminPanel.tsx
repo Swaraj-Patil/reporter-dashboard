@@ -257,7 +257,7 @@ export function AdminPanel() {
                           }`}
                         onClick={() => setState(prev => ({ ...prev, selectedTicket: ticket }))}
                       >
-                        <TableCell className="font-mono text-sm">{ticket.id}</TableCell>
+                        <TableCell className="font-mono text-sm">{`TCK-${String(ticket.id).padStart(3, '0')}`}</TableCell>
                         <TableCell className="max-w-xs truncate">{ticket.title}</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(ticket.status)}>
@@ -291,7 +291,7 @@ export function AdminPanel() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">ID: {state.selectedTicket.id}</p>
+                  <p className="text-sm text-muted-foreground mb-2">ID: {`TCK-${String(state.selectedTicket.id).padStart(3, '0')}`}</p>
                   <p>{state.selectedTicket.description}</p>
                 </CardContent>
               </Card>
