@@ -49,7 +49,7 @@ export const createTicket = async (data: { title: string; description: string })
 
 // Comments API
 export const fetchTicketComments = async (ticketId: string): Promise<Comment[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`);
+    const response = await fetch(`${API_BASE_URL}/api/comments?ticket_id=${ticketId}`);
     if (!response.ok) throw new Error('Failed to fetch comments');
     const data = await response.json();
     return data.comments;
@@ -60,7 +60,6 @@ export const addComment = async (
     content: string,
     isAdmin: boolean = false
 ): Promise<Comment> => {
-    //   const response = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`, {
     const response = await fetch(`${API_BASE_URL}/api/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,7 +118,6 @@ export const addImpactEvent = async (
     description: string,
     ticket_id: string
 ): Promise<Comment> => {
-    //   const response = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`, {
     const response = await fetch(`${API_BASE_URL}/api/impact-events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

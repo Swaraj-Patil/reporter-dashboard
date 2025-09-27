@@ -28,10 +28,12 @@ export type TicketStatusDisplay = 'Received' | 'In Review' | 'Responded';
 export interface Comment {
   id: string;
   ticket_id: string;
-  text: string;
+  body: string;
   author_name?: string;
   created_at: string;
   user_id?: string;
+  is_automated?: boolean;
+  is_admin?: boolean;
 }
 
 export interface ImpactEvent {

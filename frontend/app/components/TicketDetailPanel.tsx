@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
 import { Clock, User, Bot } from 'lucide-react';
 import { camelCaseToEnglish } from '@/lib/utils';
+import { CommentThread } from './CommentThread';
 
 interface TicketDetailPanelProps {
   ticket: Ticket;
@@ -21,7 +22,7 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4" style={{ paddingBottom: '60px' }}>
         {/* Ticket Info */}
         <Card>
           <CardHeader>
@@ -59,17 +60,15 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
                 const isActive = ticket.status === status;
                 const isPassed = ['received', 'in_review', 'responded'].indexOf(ticket.status) > index;
                 const isCompleted = isActive || isPassed;
-                
+
                 return (
                   <div key={status} className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full border-2 ${
-                      isCompleted 
-                        ? 'bg-primary border-primary' 
+                    <div className={`w-3 h-3 rounded-full border-2 ${isCompleted
+                        ? 'bg-primary border-primary'
                         : 'bg-background border-muted-foreground'
-                    }`} />
-                    <span className={`text-sm ${
-                      isActive ? 'font-medium' : isCompleted ? 'text-muted-foreground' : 'text-muted-foreground/50'
-                    }`}>
+                      }`} />
+                    <span className={`text-sm ${isActive ? 'font-medium' : isCompleted ? 'text-muted-foreground' : 'text-muted-foreground/50'
+                      }`}>
                       {camelCaseToEnglish(status)}
                     </span>
                   </div>
@@ -145,6 +144,19 @@ export function TicketDetailPanel({ ticket }: TicketDetailPanelProps) {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Comments */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Discussion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CommentThread
+              ticketId={ticket.id}
+              isAdmin={false}
+            />
           </CardContent>
         </Card>
       </div>

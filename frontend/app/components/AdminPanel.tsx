@@ -9,6 +9,7 @@ import { AlertTriangle, Trash2, BarChart3, Bot, FileText, ChartColumn, Eye, Shie
 import type { Ticket, TimelineEvent, Comment } from '../lib/types';
 import { addComment, addImpactEvent, fetchPendingTickets, updateTicketStatus } from '../lib/api';
 import { formatDistanceToNow } from 'date-fns';
+import { CommentThread } from './CommentThread';
 
 interface State {
   selectedTicket: Ticket | null;
@@ -121,7 +122,7 @@ export function AdminPanel() {
         const newTimeline: TimelineEvent = {
           type: 'human',
           timestamp: newComment.created_at,
-          message: newComment.text,
+          message: newComment.body,
           status: prev.selectedTicket.status
         };
         
@@ -414,28 +415,18 @@ export function AdminPanel() {
                 </CardContent>
               </Card>
 
-              {/* Timeline */}
-              {state.selectedTicket.timeline && state.selectedTicket.timeline.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Timeline</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {state.selectedTicket.timeline.map((event: TimelineEvent, index: number) => (
-                        <div key={index} className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-                          <div className="flex-1">
-                            <p className="text-sm">{event.message}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(event.timestamp).toLocaleString()} • {event.type === 'system' ? 'System' : 'Human'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Comments */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CommentThread
+                    ticketId={state.selectedTicket.id}
+                    isAdmin={true}
+                  />
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <Card>
